@@ -52,8 +52,8 @@ async def on_ready():
     except Exception as e:
         print(f'❌ خطأ في مرحلة البدء: {e}')
 
-# 1. نظام إحصائيات السيرفر (يتحدث كل 10 دقائق)
-@tasks.loop(minutes=10)
+# 1. نظام إحصائيات السيرفر (يتحدث كل 30 دقيقة لتجنب الحظر)
+@tasks.loop(minutes=30)
 async def update_server_stats():
     for guild in bot.guilds:
         try:
