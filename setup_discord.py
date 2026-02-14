@@ -139,5 +139,55 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+@bot.command()
+@commands.is_owner() # للتأكد أنك أنت فقط من تستطيع تشغيل هذا الأمر
+async def setup_server(ctx):
+    guild = ctx.guild
+    await ctx.send("⏳ جاري ضبط السيرفر حسب طلبك...")
+
+    # 1. إعداد رتبة Founder (كل الصلاحيات ماعدا الإدارة العليا والتحكم بالبوت)
+    founder_perms = discord.Permissions(
+        kick_members=True, ban_members=True, manage_messages=True, 
+        manage_nicknames=True, mute_members=True, deafen_members=True, 
+        move_members=True, view_audit_log=True, manage_expressions=True,
+        request_to_speak=True, send_messages=True, view_channel=True,
+        read_message_history=True, connect=True, speak=True, stream=True,
+        use_application_commands=True, embed_links=True, attach_files=True,
+        add_reactions=True, use_external_emojis=True, mention_everyone=True
+    )
+    # نلاحظ أن administrator=False و manage_roles=False و manage_guild=False لمنعهم من التحكم بالبوت
+    
+    founder_role = discord.utils.get(guild.roles, name="Founder")
+    if not founder_role:
+        founder_role = await guild.create_role(name="Founder", permissions=founder_perms, color=discord.Color.red(), hoist=True)
+        await ctx.send("✅ تم إنشاء رتبة Founder بصلاحيات قوية ولكن محدودة.")
+    else:
+        await founder_role.edit(permissions=founder_perms)
+        await ctx.send("✅ تم تحديث صلاحيات Founder.")
+
+    # 2. إعداد رتبة "ذا كرو"
+    crew_role = discord.utils.get(guild.roles, name="ذا كرو")
+    if not crew_role:
+        crew_role = await guild.create_role(name="ذا كرو", color=discord.Color.blue(), hoist=True)
+        await ctx.send("✅ تم إنشاء رتبة ذا كرو.")
+
+    # 3. إعداد قسم الإدارة (لك أنت فقط)
+    admin_category = discord.utils.get(guild.categories, name="الادارة")
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False), # إخفاء عن الكل
+        founder_role: discord.PermissionOverwrite(view_channel=False),        # إخفاء عن الفاوندر
+        guild.me: discord.PermissionOverwrite(view_channel=True)              # إظهار للبوت (عشان يقدر يخدمك)
+    }
+    
+    if not admin_category:
+        admin_category = await guild.create_category("الادارة", overwrites=overwrites)
+        await guild.create_text_channel("سجل-الادارة", category=admin_category)
+        await ctx.send("🔒 تم إنشاء قسم الادارة (مخفي عن الجميع حتى الفاوندر).")
+    else:
+        await admin_category.edit(overwrites=overwrites)
+        await ctx.send("🔒 تم تحديث خصوصية قسم الادارة.")
+
+    await ctx.send("✨ تم الانتهاء من ضبط السيرفر بنجاح!")
+
 keep_alive()
 bot.run(TOKEN)
