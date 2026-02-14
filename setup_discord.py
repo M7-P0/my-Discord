@@ -11,12 +11,12 @@ import datetime
 app = Flask('')
 @app.route('/')
 def home():
-    # رد قصير جداً لضمان استقرار Cron-job
-    return "Alive"
+    return "OK", 200 # رد مختصر جداً مع حالة نجاح 200
 
 def run():
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    # إيقاف رسائل التفاصيل المزعجة في السيرفر لتقليل حجم البيانات
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 def keep_alive():
     t = Thread(target=run)
