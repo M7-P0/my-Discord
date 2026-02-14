@@ -7,10 +7,10 @@ from flask import Flask
 from threading import Thread
 import datetime
 
-# --- إعداد خادم ريندر لإبقاء البوت حياً ---
+# --- إعداد خادم ريندر ---
 app = Flask('')
 @app.route('/')
-def home(): return "The Elite Bot is Online and Healthy!"
+def home(): return "The Elite Bot is Online!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -35,14 +35,13 @@ sent_news = []
 async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.watching, name="Gaming Trends 🚀")
     await bot.change_presence(status=discord.Status.online, activity=activity)
-    print(f'✅ البوت متصل ومستعد للعمل!')
+    print(f'✅ البوت قيد التشغيل: {bot.user}')
 
-    # تشغيل المهام التلقائية
     if not check_free_games.is_running(): check_free_games.start()
     if not update_server_stats.is_running(): update_server_stats.start()
     if not check_gaming_news.is_running(): check_gaming_news.start()
 
-# 1. نظام إحصائيات السيرفر (يتحدث كل 10 دقائق)
+# 1. نظام إحصائيات السيرفر
 @tasks.loop(minutes=10)
 async def update_server_stats():
     for guild in bot.guilds:
@@ -57,40 +56,42 @@ async def update_server_stats():
             stats_channels = {"total": f"👤┃أعضاء السيرفر: {total_members}", "online": f"🟢┃المتواجدين الآن: {online_members}"}
             
             for key, name in stats_channels.items():
-                existing = None
-                for vc in category.voice_channels:
-                    if "أعضاء" in vc.name and key == "total": existing = vc
-                    if "المتواجدين" in vc.name and key == "online": existing = vc
+                existing = next((vc for vc in category.voice_channels if (key == "total" and "أعضاء" in vc.name) or (key == "online" and "المتواجدين" in vc.name)), None)
                 if existing:
                     if existing.name != name: await existing.edit(name=name)
                 else:
                     await guild.create_voice_channel(name, category=category, overwrites={guild.default_role: discord.PermissionOverwrite(connect=False)})
         except Exception as e: print(f"❌ خطأ إحصائيات: {e}")
 
-# 2. رادار أخبار الألعاب
+# 2. رادار أخبار الألعاب (المحسن بمصدر بديل)
 @tasks.loop(hours=1)
 async def check_gaming_news():
     global sent_news
-    url = "https://newsapi.org/v2/everything?q=gaming+release+trailer&sortBy=publishedAt&language=en&apiKey=112eb229202747198a96e5eb69e15ad0"
-    headers = {"User-Agent": "Mozilla/5.0"}
+    # استراتيجية جديدة: البحث بكلمات محددة واستخدام "User-Agent" فخم
+    url = "https://newsapi.org/v2/top-headlines?category=technology&q=gaming&apiKey=112eb229202747198a96e5eb69e15ad0"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+    
     async with aiohttp.ClientSession(headers=headers) as session:
         try:
             async with session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
-                    for article in data.get('articles', [])[:2]:
-                        title = article['title']
+                    articles = data.get('articles', [])
+                    for article in articles[:3]: # نأخذ أول 3 أخبار عاجلة
+                        title = article.get('title')
                         if title and title not in sent_news:
                             for guild in bot.guilds:
-                                # يبحث عن قناة فيها كلمة "أخبار" أو "news"
-                                channel = next((c for c in guild.text_channels if "أخبار" in c.name or "news" in c.name or "gaming" in c.name), None)
+                                channel = next((c for c in guild.text_channels if "news" in c.name.lower() or "أخبار" in c.name), None)
                                 if channel:
-                                    embed = discord.Embed(title=f"� | خبر عـاجـل: {title}", description=f"{article['description'][:300]}...", url=article['url'], color=discord.Color.red())
+                                    embed = discord.Embed(title=f"📰 | {title}", description=f"{article.get('description', '')[:250]}...", url=article['url'], color=discord.Color.red())
                                     if article.get('urlToImage'): embed.set_image(url=article['urlToImage'])
-                                    embed.set_footer(text="Gaming News Hub")
+                                    embed.set_footer(text="Gaming News | شلة المصافيق")
                                     await channel.send(embed=embed)
                                     sent_news.append(title)
-        except Exception as e: print(f"❌ خطأ أخبار: {e}")
+                                    if len(sent_news) > 50: sent_news.pop(0)
+                else:
+                    print(f"❌ خطأ في جلب الأخبار: {response.status}")
+        except Exception as e: print(f"❌ خطأ رادار الأخبار: {e}")
 
 # 3. صياد الألعاب المجانية
 @tasks.loop(hours=1)
@@ -115,9 +116,8 @@ async def check_free_games():
                                     sent_games.append(title)
         except Exception as e: print(f"❌ خطأ ألعاب: {e}")
 
-# --- الأوامر ---
 @bot.command()
-async def ping(ctx): await ctx.send("🏓 Pong! البوت شغال 100%.")
+async def ping(ctx): await ctx.send("🏓 Pong! البوت شغال وسريع.")
 
 @bot.command()
 async def user(ctx, member: discord.Member = None):
@@ -129,9 +129,8 @@ async def user(ctx, member: discord.Member = None):
 
 @bot.command()
 async def server(ctx):
-    guild = ctx.guild
-    embed = discord.Embed(title=f"📊 إحصائيات: {guild.name}", color=discord.Color.gold())
-    embed.add_field(name="الأعضاء الكلي", value=guild.member_count)
+    embed = discord.Embed(title=f"📊 إحصائيات: {ctx.guild.name}", color=discord.Color.gold())
+    embed.add_field(name="الأعضاء الكلي", value=ctx.guild.member_count)
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -150,7 +149,7 @@ async def clear(ctx, amount: int = 100):
 
 @bot.command()
 async def check(ctx):
-    await ctx.send("🔍 جاري فحص الأخبار والألعاب فوراً...")
+    await ctx.send("🔍 جاري جلب آخر الأخبار والألعاب المجانية...")
     check_free_games.restart()
     check_gaming_news.restart()
 
