@@ -34,12 +34,23 @@ sent_games = []
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.watching, name="Gaming Trends 🚀")
-    await bot.change_presence(status=discord.Status.online, activity=activity)
-    print(f'✅ البوت مستقر وشغال باسم: {bot.user}')
+    print(f'⏳ جاري تجهيز بيانات البوت لـ {bot.user}...')
+    try:
+        activity = discord.Activity(type=discord.ActivityType.watching, name="Gaming Trends 🚀")
+        await bot.change_presence(status=discord.Status.online, activity=activity)
+        print('✅ تم تحديث حالة البوت (Online).')
 
-    if not check_free_games.is_running(): check_free_games.start()
-    if not update_server_stats.is_running(): update_server_stats.start()
+        if not check_free_games.is_running(): 
+            check_free_games.start()
+            print('🎮 تم تشغيل نظام الألعاب المجانية.')
+            
+        if not update_server_stats.is_running(): 
+            update_server_stats.start()
+            print('📊 تم تشغيل نظام الإحصائيات.')
+            
+        print(f'🚀 البوت الآن جاهز تماماً لاستقبال الأوامر في {len(bot.guilds)} سيرفر!')
+    except Exception as e:
+        print(f'❌ خطأ في مرحلة البدء: {e}')
 
 # 1. نظام إحصائيات السيرفر (يتحدث كل 10 دقائق)
 @tasks.loop(minutes=10)
