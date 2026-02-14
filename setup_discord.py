@@ -80,7 +80,7 @@ async def update_server_stats():
         except Exception as e:
             print(f"❌ خطأ الإحصائيات: {e}")
 
-# 2. رادار أخبار الألعاب
+# 2. رادار أخبار الألعاب (قناة منفصلة)
 @tasks.loop(hours=1)
 async def check_gaming_news():
     global sent_news
@@ -96,7 +96,8 @@ async def check_gaming_news():
                         title = article['title']
                         if title not in sent_news:
                             for guild in bot.guilds:
-                                channel = discord.utils.get(guild.text_channels, name="📢┃الأخبار-news")
+                                # تغيير القناة إلى قناة الأخبار العالمية
+                                channel = discord.utils.get(guild.text_channels, name="�┃أخبار-الجيمينج")
                                 if channel:
                                     embed = discord.Embed(title=f"📰 | خبر عـاجـل: {title}", description=f"{article['description'][:300]}...", url=article['url'], color=discord.Color.red(), timestamp=datetime.datetime.utcnow())
                                     if article.get('urlToImage'): embed.set_image(url=article['urlToImage'])
@@ -106,7 +107,7 @@ async def check_gaming_news():
                                     if len(sent_news) > 50: sent_news.pop(0)
         except Exception as e: print(f"❌ خطأ الأخبار: {e}")
 
-# 3. صياد الألعاب المجانية
+# 3. صياد الألعاب المجانية (قناة منفصلة)
 @tasks.loop(hours=1)
 async def check_free_games():
     global sent_games
@@ -120,7 +121,8 @@ async def check_free_games():
                         title, platform = game['title'], game['platforms']
                         if ("Steam" in platform or "Epic" in platform) and title not in sent_games:
                             for guild in bot.guilds:
-                                channel = discord.utils.get(guild.text_channels, name="📢┃الأخبار-news")
+                                # قناة الألعاب المجانية
+                                channel = discord.utils.get(guild.text_channels, name="🎁┃ألعاب-مجانية")
                                 if channel:
                                     store = "STEAM 🎮" if "Steam" in platform else "EPIC GAMES 🔥"
                                     color = discord.Color.dark_blue() if "Steam" in platform else discord.Color.blue()
@@ -131,17 +133,14 @@ async def check_free_games():
                                     sent_games.append(title)
         except Exception as e: print(f"❌ خطأ الألعاب: {e}")
 
-# --- 4. أوامر المعلومات والفعاليات 📊 (الجديدة) ---
-
+# 4. أوامر المعلومات والفعاليات
 @bot.command()
 async def user(ctx, member: discord.Member = None):
-    """يظهر معلومات العضو"""
     member = member or ctx.author
     roles = [role.name for role in member.roles if role.name != "@everyone"]
     embed = discord.Embed(title=f"👤 معلومات العضو: {member.display_name}", color=member.color)
     embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
     embed.add_field(name="الاسم الكامل", value=member, inline=True)
-    embed.add_field(name="ID العضو", value=member.id, inline=True)
     embed.add_field(name="انضم للديسكورد", value=member.created_at.strftime("%Y/%m/%d"), inline=True)
     embed.add_field(name="انضم للسيرفر", value=member.joined_at.strftime("%Y/%m/%d"), inline=True)
     embed.add_field(name="الرتب", value=", ".join(roles) if roles else "لا توجد رتب", inline=False)
@@ -149,20 +148,16 @@ async def user(ctx, member: discord.Member = None):
 
 @bot.command()
 async def server(ctx):
-    """يظهر إحصائيات السيرفر"""
     guild = ctx.guild
     embed = discord.Embed(title=f"📊 إحصائيات سيرفر: {guild.name}", color=discord.Color.gold())
     if guild.icon: embed.set_thumbnail(url=guild.icon.url)
     embed.add_field(name="صاحب السيرفر", value=guild.owner, inline=True)
     embed.add_field(name="الأعضاء الكلي", value=guild.member_count, inline=True)
     embed.add_field(name="تاريخ التأسيس", value=guild.created_at.strftime("%Y/%m/%d"), inline=True)
-    embed.add_field(name="عدد القنوات", value=len(guild.channels), inline=True)
-    embed.add_field(name="عدد الرتب", value=len(guild.roles), inline=True)
     await ctx.send(embed=embed)
 
 @bot.command()
 async def poll(ctx, *, question):
-    """يسوي تصويت سريع"""
     await ctx.message.delete()
     embed = discord.Embed(title="🗳️ تصويت جديد", description=f"**{question}**", color=discord.Color.blue())
     embed.set_footer(text=f"بواسطة: {ctx.author.display_name}")
@@ -170,7 +165,6 @@ async def poll(ctx, *, question):
     await poll_msg.add_reaction("✅")
     await poll_msg.add_reaction("❌")
 
-# أوامر الإدارة الأساسية
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def clear(ctx, amount: int = 100):
