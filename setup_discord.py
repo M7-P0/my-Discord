@@ -2,10 +2,26 @@ import discord
 from discord.ext import commands, tasks
 import aiohttp
 import asyncio
-import os # نحتاجه لقراءة التوكن من إعدادات الاستضافة
+import os
+from flask import Flask
+from threading import Thread
+
+# --- إعداد خادم وهمي لإبقاء البوت حياً في Render المجاني ---
+app = Flask('')
+@app.route('/')
+def home():
+    return "Bot is Running!"
+
+def run():
+    # Render يطلب بوابة معينة، هنا نخليه يسمع لكلامه
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 # --- الإعدادات ---
-# هنا خليناه يقرأ التوكن من "متغيرات البيئة" عشان يكون أمانه عالي في قيت هب
 TOKEN = os.getenv('BOT_TOKEN')
 PREFIX = '!'
 
@@ -86,4 +102,5 @@ async def check(ctx):
     await ctx.send("🔍 جاري فحص (Steam & Epic) فوراً...")
     check_free_games.restart()
 
+keep_alive() # تشغيل الخادم الوهمي
 bot.run(TOKEN)
