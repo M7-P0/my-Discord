@@ -33,7 +33,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
-# ذاكرة البوت لمنع التكرار
+# ذاكرة البوت
 sent_games = []
 sent_news = []
 
@@ -41,7 +41,7 @@ sent_news = []
 async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.watching, name="Gaming Trends 🚀")
     await bot.change_presence(status=discord.Status.online, activity=activity)
-    print(f'✅ البوت متصل الآن باسم: {bot.user}')
+    print(f'✅ البوت متصل الآن: {bot.user}')
 
     if not check_free_games.is_running(): check_free_games.start()
     if not update_server_stats.is_running(): update_server_stats.start()
@@ -78,13 +78,16 @@ async def update_server_stats():
                     await guild.create_voice_channel(name, category=category, overwrites=overwrites)
         except Exception as e: print(f"❌ خطأ الإحصائيات: {e}")
 
-# 2. رادار أخبار الألعاب (محسن للبحث عن القناة)
+# 2. رادار أخبار الألعاب (المطور)
 @tasks.loop(hours=1)
 async def check_gaming_news():
     global sent_news
-    # مصدر أخبار عالمي
-    url = "https://newsapi.org/v2/everything?q=gaming&sortBy=publishedAt&language=en&apiKey=112eb229202747198a96e5eb69e15ad0"
-    async with aiohttp.ClientSession() as session:
+    # مفتاح API ومعلومات البحث
+    news_key = "112eb229202747198a96e5eb69e15ad0"
+    url = f"https://newsapi.org/v2/everything?q=gaming+news+release&sortBy=publishedAt&language=en&apiKey={news_key}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    async with aiohttp.ClientSession(headers=headers) as session:
         try:
             async with session.get(url) as response:
                 if response.status == 200:
@@ -92,32 +95,37 @@ async def check_gaming_news():
                     articles = data.get('articles', [])[:2]
                     for article in articles:
                         title = article['title']
-                        if title not in sent_news:
+                        if title and title not in sent_news:
                             for guild in bot.guilds:
-                                # البحث عن قناة تحتوي على كلمة "أخبار" أو "news"
-                                channel = discord.utils.get(guild.text_channels, name="📰┃أخبار-الجيمينج")
-                                if not channel:
-                                    channel = next((c for c in guild.text_channels if "أخبار" in c.name or "news" in c.name), None)
+                                # البحث عن القناة بأي اسم مشابه
+                                channel = next((c for c in guild.text_channels if "أخبار-الجيمينج" in c.name or "gaming-news" in c.name or "news" in c.name), None)
                                 
                                 if channel:
-                                    embed = discord.Embed(title=f"📰 | خبر عـاجـل: {title}", description=f"{article['description'][:300]}...", url=article['url'], color=discord.Color.red(), timestamp=datetime.datetime.utcnow())
+                                    embed = discord.Embed(
+                                        title=f"📰 | خبر عـاجـل: {title}",
+                                        description=f"{article['description'][:300]}...",
+                                        url=article['url'],
+                                        color=discord.Color.red(),
+                                        timestamp=datetime.datetime.utcnow()
+                                    )
                                     if article.get('urlToImage'): embed.set_image(url=article['urlToImage'])
-                                    embed.set_footer(text="Gaming News | شلة المصافيق")
+                                    embed.set_footer(text="Gaming News Hub | شلة المصافيق")
                                     await channel.send(embed=embed)
                                     sent_news.append(title)
-                                    print(f"✅ تم إرسال خبر: {title}")
+                                    print(f"✅ تم إرسال الخبر بنجاح: {title}")
                                     if len(sent_news) > 50: sent_news.pop(0)
                         else:
-                            print(f"ℹ️ الخبر موجود مسبقاً: {title}")
+                            print(f"ℹ️ تم تجاهل الخبر (مكرر أو عنوان فارغ)")
                 else:
-                    print(f"❌ مشكلة في API الأخبار: {response.status}")
-        except Exception as e: print(f"❌ خطأ رادار الأخبار: {e}")
+                    print(f"❌ خطأ من API الأخبار: {response.status}")
+        except Exception as e: print(f"❌ خطأ تقني في رادار الأخبار: {e}")
 
-# 3. صياد الألعاب المجانية (محسن للبحث عن القناة)
+# 3. صياد الألعاب المجانية
 @tasks.loop(hours=1)
 async def check_free_games():
     global sent_games
-    async with aiohttp.ClientSession() as session:
+    headers = {"User-Agent": "Mozilla/5.0"}
+    async with aiohttp.ClientSession(headers=headers) as session:
         url = "https://www.gamerpower.com/api/giveaways?type=game&sort-by=date"
         try:
             async with session.get(url) as response:
@@ -127,10 +135,7 @@ async def check_free_games():
                         title, platform = game['title'], game['platforms']
                         if ("Steam" in platform or "Epic" in platform) and title not in sent_games:
                             for guild in bot.guilds:
-                                channel = discord.utils.get(guild.text_channels, name="🎁┃ألعاب-مجانية")
-                                if not channel:
-                                    channel = next((c for c in guild.text_channels if "ألعاب" in c.name or "free" in c.name), None)
-                                
+                                channel = next((c for c in guild.text_channels if "ألعاب-مجانية" in c.name or "free" in c.name), None)
                                 if channel:
                                     store = "STEAM 🎮" if "Steam" in platform else "EPIC GAMES 🔥"
                                     color = discord.Color.dark_blue() if "Steam" in platform else discord.Color.blue()
@@ -139,10 +144,9 @@ async def check_free_games():
                                     embed.add_field(name="الرابط", value=f"[اضغط هنا]({game['open_giveaway_url']})")
                                     await channel.send(content="@everyone", embed=embed)
                                     sent_games.append(title)
-                                    print(f"✅ تم إرسال لعبة: {title}")
         except Exception as e: print(f"❌ خطأ صياد الألعاب: {e}")
 
-# 4. أوامر المعلومات والفعاليات
+# --- أوامر الإدارة والفعاليات ---
 @bot.command()
 async def user(ctx, member: discord.Member = None):
     member = member or ctx.author
@@ -182,13 +186,15 @@ async def clear(ctx, amount: int = 100):
 
 @bot.command()
 async def check(ctx):
-    await ctx.send("🕵️‍♂️ جاري الفحص الفوري للأخبار والألعاب..."); check_free_games.restart(); check_gaming_news.restart()
+    await ctx.send("� جاري فحص الأخبار والألعاب المجانية الحصرية...")
+    check_free_games.restart()
+    check_gaming_news.restart()
 
 @bot.event
 async def on_message(message):
     if message.author == bot.user: return
     if "discord.gg/" in message.content.lower() and not message.author.guild_permissions.manage_messages:
-        await message.delete(); await message.channel.send(f"⚠️ {message.author.mention}، يمنع نشر الروابط!", delete_after=5)
+        await message.delete(); await message.channel.send(f"⚠️ يمنع النشر!", delete_after=5)
     await bot.process_commands(message)
 
 keep_alive()
