@@ -189,5 +189,14 @@ async def setup_server(ctx):
 
     await ctx.send("✨ تم الانتهاء من ضبط السيرفر بنجاح!")
 
-keep_alive()
-bot.run(TOKEN)
+if __name__ == "__main__":
+    print("🚀 جاري بدء تشغيل نظام الـ Keep Alive...")
+    keep_alive()
+    print("🤖 جاري محاولة تسجيل دخول البوت...")
+    try:
+        if TOKEN:
+            bot.run(TOKEN)
+        else:
+            print("❌ خطأ: TOKEN مفقود!")
+    except Exception as e:
+        print(f"❌ فشل البوت في العمل: {e}")
