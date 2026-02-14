@@ -96,8 +96,7 @@ async def check_gaming_news():
                         title = article['title']
                         if title not in sent_news:
                             for guild in bot.guilds:
-                                # تغيير القناة إلى قناة الأخبار العالمية
-                                channel = discord.utils.get(guild.text_channels, name="�┃أخبار-الجيمينج")
+                                channel = discord.utils.get(guild.text_channels, name="📰┃أخبار-الجيمينج")
                                 if channel:
                                     embed = discord.Embed(title=f"📰 | خبر عـاجـل: {title}", description=f"{article['description'][:300]}...", url=article['url'], color=discord.Color.red(), timestamp=datetime.datetime.utcnow())
                                     if article.get('urlToImage'): embed.set_image(url=article['urlToImage'])
@@ -121,7 +120,6 @@ async def check_free_games():
                         title, platform = game['title'], game['platforms']
                         if ("Steam" in platform or "Epic" in platform) and title not in sent_games:
                             for guild in bot.guilds:
-                                # قناة الألعاب المجانية
                                 channel = discord.utils.get(guild.text_channels, name="🎁┃ألعاب-مجانية")
                                 if channel:
                                     store = "STEAM 🎮" if "Steam" in platform else "EPIC GAMES 🔥"
