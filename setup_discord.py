@@ -3,6 +3,8 @@ from discord.ext import commands, tasks
 import aiohttp
 import asyncio
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask
 from threading import Thread
 import datetime
