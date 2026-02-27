@@ -138,6 +138,27 @@ async def check(ctx):
     await ctx.send("🔍 جاري فحص الألعاب المجانية فوراً...")
     check_free_games.restart()
 
+@bot.command(name="links", aliases=["روابط", "موقعي", "دعم"])
+async def links(ctx):
+    """عرض الروابط الخاصة بصاحب البوت"""
+    embed = discord.Embed(title="🌐 روابط مهمة", description="تفضل بزيارة الروابط أدناه:", color=discord.Color.green())
+    
+    # 👇 ضع رابط موقعك أسفل هذا السطر بين علامتي التنصيص 👇
+    website_url = "https://www.m-ttech.com/" 
+    
+    # 👇 ضع رابط التسويق بالعمولة لأمازون أسفل هذا السطر بين علامتي التنصيص 👇
+    amazon_url = "https://amzn.to/4r1Jjno" 
+    
+    embed.add_field(name="🌍 موقعي الإلكتروني", value=f"**[اضغط هنا لزيارة الموقع]({website_url})**\n", inline=False)
+    embed.add_field(name="🛒 لدعمي عبر الشراء من أمازون", value=f"**[اضغط هنا للتسوق]({amazon_url})**\n", inline=False)
+    
+    if bot.user.avatar:
+        embed.set_thumbnail(url=bot.user.avatar.url)
+        
+    embed.set_footer(text="شكراً لدعمكم المستمر! ❤️")
+    
+    await ctx.send(embed=embed)
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user: return
